@@ -58,8 +58,6 @@ func (r *Parameter) Schema(ctx context.Context, req resource.SchemaRequest, resp
 		Attributes: map[string]schema.Attribute{
 			"project": schema.StringAttribute{
 				Optional: true,
-				Computed: true,
-				Default:  stringdefault.StaticString(""),
 			},
 			"key": schema.StringAttribute{
 				Required: true,
@@ -215,10 +213,14 @@ func (r *Parameter) Read(ctx context.Context, req resource.ReadRequest, resp *re
 	}
 
 	if param, ok := rc.Parameters[state.Key.ValueString()]; ok {
+
 		state.Description = types.StringValue(param.Description)
 		state.ValueType = types.StringValue(param.ValueType)
-		state.DefaultValue.Value = types.StringValue(param.DefaultValue.Value)
-		state.DefaultValue.UseInAppDefault = types.BoolValue(param.DefaultValue.UseInAppDefault)
+
+		state.DefaultValue = &ParameterValueModel{
+			Value:           types.StringValue(param.DefaultValue.Value),
+			UseInAppDefault: types.BoolValue(param.DefaultValue.UseInAppDefault),
+		}
 
 		if len(state.ConditionalValues) >= 1 {
 			param.ConditionalValues = map[string]firebaseremoteconfig.RemoteConfigParameterValue{}
