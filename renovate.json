@@ -9,5 +9,16 @@
   ],
   "vulnerabilityAlerts": {
     "enabled": true
-  }
+  },
+  "packageRules": [
+    {
+      "matchPackageNames": [
+        "github.com/winebarrel/google-api-go-client"
+      ],
+      "matchManagers": [
+        "gomod"
+      ],
+      "enabled": false
+    }
+  ]
 }
