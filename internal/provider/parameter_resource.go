@@ -85,7 +85,7 @@ func (r *Parameter) Schema(ctx context.Context, req resource.SchemaRequest, resp
 				},
 			},
 			"default_value": schema.SingleNestedAttribute{
-				Required: true,
+				Optional: true,
 				Attributes: map[string]schema.Attribute{
 					"use_in_app_default": schema.BoolAttribute{
 						Optional: true,
@@ -93,7 +93,9 @@ func (r *Parameter) Schema(ctx context.Context, req resource.SchemaRequest, resp
 						Default:  booldefault.StaticBool(false),
 					},
 					"value": schema.StringAttribute{
-						Required: true,
+						Optional: true,
+						Computed: true,
+						Default:  stringdefault.StaticString(""),
 					},
 				},
 			},
@@ -107,7 +109,9 @@ func (r *Parameter) Schema(ctx context.Context, req resource.SchemaRequest, resp
 							Default:  booldefault.StaticBool(false),
 						},
 						"value": schema.StringAttribute{
-							Required: true,
+							Optional: true,
+							Computed: true,
+							Default:  stringdefault.StaticString(""),
 						},
 					},
 				},
@@ -148,10 +152,18 @@ func (r *Parameter) Create(ctx context.Context, req resource.CreateRequest, resp
 		return
 	}
 
-	param := firebaseremoteconfig.RemoteConfigParameter{
-		DefaultValue: &firebaseremoteconfig.RemoteConfigParameterValue{
-			Value: plan.DefaultValue.Value.ValueString(),
-		},
+	param := firebaseremoteconfig.RemoteConfigParameter{}
+
+	if plan.DefaultValue != nil {
+		param.DefaultValue = &firebaseremoteconfig.RemoteConfigParameterValue{}
+
+		if !plan.DefaultValue.Value.IsNull() {
+			param.DefaultValue.Value = plan.DefaultValue.Value.ValueString()
+		}
+
+		if !plan.DefaultValue.UseInAppDefault.IsNull() {
+			param.DefaultValue.UseInAppDefault = plan.DefaultValue.UseInAppDefault.ValueBool()
+		}
 	}
 
 	if !plan.Description.IsNull() {
@@ -162,16 +174,14 @@ func (r *Parameter) Create(ctx context.Context, req resource.CreateRequest, resp
 		param.ValueType = plan.ValueType.ValueString()
 	}
 
-	if !plan.DefaultValue.UseInAppDefault.IsNull() {
-		param.DefaultValue.UseInAppDefault = plan.DefaultValue.UseInAppDefault.ValueBool()
-	}
-
 	if len(plan.ConditionalValues) >= 1 {
 		param.ConditionalValues = map[string]firebaseremoteconfig.RemoteConfigParameterValue{}
 
 		for key, condVal := range plan.ConditionalValues {
-			v := firebaseremoteconfig.RemoteConfigParameterValue{
-				Value: condVal.Value.ValueString(),
+			v := firebaseremoteconfig.RemoteConfigParameterValue{}
+
+			if !condVal.Value.IsNull() {
+				v.Value = condVal.Value.ValueString()
 			}
 
 			if !condVal.UseInAppDefault.IsNull() {
@@ -221,19 +231,14 @@ func (r *Parameter) Read(ctx context.Context, req resource.ReadRequest, resp *re
 			UseInAppDefault: types.BoolValue(param.DefaultValue.UseInAppDefault),
 		}
 
-		if len(state.ConditionalValues) >= 1 {
-			param.ConditionalValues = map[string]firebaseremoteconfig.RemoteConfigParameterValue{}
+		if len(param.ConditionalValues) >= 1 {
+			state.ConditionalValues = map[string]ParameterValueModel{}
 
-			for key, condVal := range state.ConditionalValues {
-				v := firebaseremoteconfig.RemoteConfigParameterValue{
-					Value: condVal.Value.ValueString(),
+			for key, condVal := range param.ConditionalValues {
+				state.ConditionalValues[key] = ParameterValueModel{
+					Value:           types.StringValue(condVal.Value),
+					UseInAppDefault: types.BoolValue(condVal.UseInAppDefault),
 				}
-
-				if !condVal.UseInAppDefault.IsNull() {
-					v.UseInAppDefault = condVal.UseInAppDefault.ValueBool()
-				}
-
-				param.ConditionalValues[key] = v
 			}
 		}
 
@@ -262,10 +267,18 @@ func (r *Parameter) Update(ctx context.Context, req resource.UpdateRequest, resp
 		return
 	}
 
-	param := firebaseremoteconfig.RemoteConfigParameter{
-		DefaultValue: &firebaseremoteconfig.RemoteConfigParameterValue{
-			Value: plan.DefaultValue.Value.ValueString(),
-		},
+	param := firebaseremoteconfig.RemoteConfigParameter{}
+
+	if plan.DefaultValue != nil {
+		param.DefaultValue = &firebaseremoteconfig.RemoteConfigParameterValue{}
+
+		if !plan.DefaultValue.Value.IsNull() {
+			param.DefaultValue.Value = plan.DefaultValue.Value.ValueString()
+		}
+
+		if !plan.DefaultValue.UseInAppDefault.IsNull() {
+			param.DefaultValue.UseInAppDefault = plan.DefaultValue.UseInAppDefault.ValueBool()
+		}
 	}
 
 	if !plan.Description.IsNull() {
@@ -276,16 +289,14 @@ func (r *Parameter) Update(ctx context.Context, req resource.UpdateRequest, resp
 		param.ValueType = plan.ValueType.ValueString()
 	}
 
-	if !plan.DefaultValue.UseInAppDefault.IsNull() {
-		param.DefaultValue.UseInAppDefault = plan.DefaultValue.UseInAppDefault.ValueBool()
-	}
-
 	if len(plan.ConditionalValues) >= 1 {
 		param.ConditionalValues = map[string]firebaseremoteconfig.RemoteConfigParameterValue{}
 
 		for key, condVal := range plan.ConditionalValues {
-			v := firebaseremoteconfig.RemoteConfigParameterValue{
-				Value: condVal.Value.ValueString(),
+			v := firebaseremoteconfig.RemoteConfigParameterValue{}
+
+			if !condVal.Value.IsNull() {
+				v.Value = condVal.Value.ValueString()
 			}
 
 			if !condVal.UseInAppDefault.IsNull() {
