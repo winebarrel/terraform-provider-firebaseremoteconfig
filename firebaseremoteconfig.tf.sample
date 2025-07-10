@@ -1,0 +1,20 @@
+terraform {
+  required_providers {
+    firebaseremoteconfig = {
+      source = "winebarrel/firebaseremoteconfig"
+    }
+  }
+}
+
+provider "firebaseremoteconfig" {
+  project = "my-proj"
+}
+
+resource "firebaseremoteconfig_parameter" "foo" {
+  key        = "foo"
+  value_type = "STRING"
+
+  default_value = {
+    value = "bar"
+  }
+}

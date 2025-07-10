@@ -30,3 +30,9 @@ go.work.sum
 # Editor/IDE
 # .idea/
 # .vscode/
+
+/terraform-provider-firebaseremoteconfig
+/dev.tfrc
+/*.tf
+*.tfstate
+*.tfstate.*
