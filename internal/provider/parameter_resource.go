@@ -31,6 +31,7 @@ type Parameter struct {
 }
 
 type ParameterModel struct {
+	Project      types.String         `tfsdk:"project"`
 	Key          types.String         `tfsdk:"key"`
 	Description  types.String         `tfsdk:"description"`
 	ValueType    types.String         `tfsdk:"value_type"`
@@ -49,6 +50,11 @@ func (r *Parameter) Metadata(ctx context.Context, req resource.MetadataRequest, 
 func (r *Parameter) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		Attributes: map[string]schema.Attribute{
+			"project": schema.StringAttribute{
+				Optional: true,
+				Computed: true,
+				Default:  stringdefault.StaticString(""),
+			},
 			"key": schema.StringAttribute{
 				Required: true,
 				PlanModifiers: []planmodifier.String{
@@ -116,7 +122,7 @@ func (r *Parameter) Create(ctx context.Context, req resource.CreateRequest, resp
 		return
 	}
 
-	rc, err := r.client.GetRemoteConfig().Do()
+	rc, err := r.client.GetRemoteConfig(plan.Project.ValueString()).Do()
 
 	if err != nil {
 		resp.Diagnostics.AddError("Error Getting Firebase Remote Config", err.Error())
@@ -142,7 +148,7 @@ func (r *Parameter) Create(ctx context.Context, req resource.CreateRequest, resp
 	}
 
 	rc.Parameters[plan.Key.ValueString()] = param
-	_, err = r.client.UpdateRemoteConfig(rc).Do()
+	_, err = r.client.UpdateRemoteConfig(plan.Project.ValueString(), rc).Do()
 
 	if err != nil {
 		resp.Diagnostics.AddError("Error Updating Firebase Remote Config", err.Error())
@@ -164,7 +170,7 @@ func (r *Parameter) Read(ctx context.Context, req resource.ReadRequest, resp *re
 		return
 	}
 
-	rc, err := r.client.GetRemoteConfig().Do()
+	rc, err := r.client.GetRemoteConfig(state.Project.ValueString()).Do()
 
 	if err != nil {
 		resp.Diagnostics.AddError("Error Getting Firebase Remote Config", err.Error())
@@ -194,7 +200,7 @@ func (r *Parameter) Update(ctx context.Context, req resource.UpdateRequest, resp
 		return
 	}
 
-	rc, err := r.client.GetRemoteConfig().Do()
+	rc, err := r.client.GetRemoteConfig(plan.Project.ValueString()).Do()
 
 	if err != nil {
 		resp.Diagnostics.AddError("Error Getting Firebase Remote Config", err.Error())
@@ -220,7 +226,7 @@ func (r *Parameter) Update(ctx context.Context, req resource.UpdateRequest, resp
 	}
 
 	rc.Parameters[plan.Key.ValueString()] = param
-	_, err = r.client.UpdateRemoteConfig(rc).Do()
+	_, err = r.client.UpdateRemoteConfig(plan.Project.ValueString(), rc).Do()
 
 	if err != nil {
 		resp.Diagnostics.AddError("Error Updating Firebase Remote Config", err.Error())
@@ -242,7 +248,7 @@ func (r *Parameter) Delete(ctx context.Context, req resource.DeleteRequest, resp
 		return
 	}
 
-	rc, err := r.client.GetRemoteConfig().Do()
+	rc, err := r.client.GetRemoteConfig(state.Project.ValueString()).Do()
 
 	if err != nil {
 		resp.Diagnostics.AddError("Error Getting Firebase Remote Config", err.Error())
@@ -250,7 +256,7 @@ func (r *Parameter) Delete(ctx context.Context, req resource.DeleteRequest, resp
 	}
 
 	delete(rc.Parameters, state.Key.ValueString())
-	_, err = r.client.UpdateRemoteConfig(rc).Do()
+	_, err = r.client.UpdateRemoteConfig(state.Project.ValueString(), rc).Do()
 
 	if err != nil {
 		resp.Diagnostics.AddError("Error Updating Firebase Remote Config", err.Error())

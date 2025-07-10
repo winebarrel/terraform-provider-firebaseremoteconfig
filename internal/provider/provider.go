@@ -28,14 +28,20 @@ type FirebaseRemoteConfigClient struct {
 	project string
 }
 
-func (client *FirebaseRemoteConfigClient) GetRemoteConfig() *firebaseremoteconfig.ProjectsGetRemoteConfigCall {
-	proj := "projects/" + client.project
-	return client.service.Projects.GetRemoteConfig(proj)
+func (client *FirebaseRemoteConfigClient) GetRemoteConfig(resProj string) *firebaseremoteconfig.ProjectsGetRemoteConfigCall {
+	proj := client.project
+	if resProj != "" {
+		proj = resProj
+	}
+	return client.service.Projects.GetRemoteConfig("projects/" + proj)
 }
 
-func (client *FirebaseRemoteConfigClient) UpdateRemoteConfig(rc *firebaseremoteconfig.RemoteConfig) *firebaseremoteconfig.ProjectsUpdateRemoteConfigCall {
-	proj := "projects/" + client.project
-	updateRemoteConfig := client.service.Projects.UpdateRemoteConfig(proj, rc)
+func (client *FirebaseRemoteConfigClient) UpdateRemoteConfig(resProj string, rc *firebaseremoteconfig.RemoteConfig) *firebaseremoteconfig.ProjectsUpdateRemoteConfigCall {
+	proj := client.project
+	if resProj != "" {
+		proj = resProj
+	}
+	updateRemoteConfig := client.service.Projects.UpdateRemoteConfig("projects/"+proj, rc)
 	updateRemoteConfig.Header().Add("If-Match", "*")
 	return updateRemoteConfig
 }
