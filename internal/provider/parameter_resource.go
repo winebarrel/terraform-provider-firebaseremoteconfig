@@ -31,14 +31,20 @@ type Parameter struct {
 }
 
 type ParameterModel struct {
-	Project      types.String         `tfsdk:"project"`
-	Key          types.String         `tfsdk:"key"`
-	Description  types.String         `tfsdk:"description"`
-	ValueType    types.String         `tfsdk:"value_type"`
-	DefaultValue *ParameterValueModel `tfsdk:"default_value"`
+	Project           types.String                   `tfsdk:"project"`
+	Key               types.String                   `tfsdk:"key"`
+	Description       types.String                   `tfsdk:"description"`
+	ValueType         types.String                   `tfsdk:"value_type"`
+	DefaultValue      *ParameterValueModel           `tfsdk:"default_value"`
+	ConditionalValues map[string]ParameterValueModel `tfsdk:"conditional_values"`
 }
 
 type ParameterValueModel struct {
+	UseInAppDefault types.Bool   `tfsdk:"use_in_app_default"`
+	Value           types.String `tfsdk:"value"`
+}
+
+type ConditionalParameterValueModel struct {
 	UseInAppDefault types.Bool   `tfsdk:"use_in_app_default"`
 	Value           types.String `tfsdk:"value"`
 }
@@ -90,6 +96,21 @@ func (r *Parameter) Schema(ctx context.Context, req resource.SchemaRequest, resp
 					},
 					"value": schema.StringAttribute{
 						Required: true,
+					},
+				},
+			},
+			"conditional_values": schema.MapNestedAttribute{
+				Optional: true,
+				NestedObject: schema.NestedAttributeObject{
+					Attributes: map[string]schema.Attribute{
+						"use_in_app_default": schema.BoolAttribute{
+							Optional: true,
+							Computed: true,
+							Default:  booldefault.StaticBool(false),
+						},
+						"value": schema.StringAttribute{
+							Required: true,
+						},
 					},
 				},
 			},
@@ -147,6 +168,22 @@ func (r *Parameter) Create(ctx context.Context, req resource.CreateRequest, resp
 		param.DefaultValue.UseInAppDefault = plan.DefaultValue.UseInAppDefault.ValueBool()
 	}
 
+	if len(plan.ConditionalValues) >= 1 {
+		param.ConditionalValues = map[string]firebaseremoteconfig.RemoteConfigParameterValue{}
+
+		for key, condVal := range plan.ConditionalValues {
+			v := firebaseremoteconfig.RemoteConfigParameterValue{
+				Value: condVal.Value.ValueString(),
+			}
+
+			if !condVal.UseInAppDefault.IsNull() {
+				v.UseInAppDefault = condVal.UseInAppDefault.ValueBool()
+			}
+
+			param.ConditionalValues[key] = v
+		}
+	}
+
 	rc.Parameters[plan.Key.ValueString()] = param
 	_, err = r.client.UpdateRemoteConfig(plan.Project.ValueString(), rc).Do()
 
@@ -182,6 +219,23 @@ func (r *Parameter) Read(ctx context.Context, req resource.ReadRequest, resp *re
 		state.ValueType = types.StringValue(param.ValueType)
 		state.DefaultValue.Value = types.StringValue(param.DefaultValue.Value)
 		state.DefaultValue.UseInAppDefault = types.BoolValue(param.DefaultValue.UseInAppDefault)
+
+		if len(state.ConditionalValues) >= 1 {
+			param.ConditionalValues = map[string]firebaseremoteconfig.RemoteConfigParameterValue{}
+
+			for key, condVal := range state.ConditionalValues {
+				v := firebaseremoteconfig.RemoteConfigParameterValue{
+					Value: condVal.Value.ValueString(),
+				}
+
+				if !condVal.UseInAppDefault.IsNull() {
+					v.UseInAppDefault = condVal.UseInAppDefault.ValueBool()
+				}
+
+				param.ConditionalValues[key] = v
+			}
+		}
+
 		resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
 	} else {
 		resp.State.RemoveResource(ctx)
@@ -223,6 +277,22 @@ func (r *Parameter) Update(ctx context.Context, req resource.UpdateRequest, resp
 
 	if !plan.DefaultValue.UseInAppDefault.IsNull() {
 		param.DefaultValue.UseInAppDefault = plan.DefaultValue.UseInAppDefault.ValueBool()
+	}
+
+	if len(plan.ConditionalValues) >= 1 {
+		param.ConditionalValues = map[string]firebaseremoteconfig.RemoteConfigParameterValue{}
+
+		for key, condVal := range plan.ConditionalValues {
+			v := firebaseremoteconfig.RemoteConfigParameterValue{
+				Value: condVal.Value.ValueString(),
+			}
+
+			if !condVal.UseInAppDefault.IsNull() {
+				v.UseInAppDefault = condVal.UseInAppDefault.ValueBool()
+			}
+
+			param.ConditionalValues[key] = v
+		}
 	}
 
 	rc.Parameters[plan.Key.ValueString()] = param
