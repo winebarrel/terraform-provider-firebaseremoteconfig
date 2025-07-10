@@ -1,11 +1,3 @@
-terraform {
-  required_providers {
-    firebaseremoteconfig = {
-      source = "winebarrel/firebaseremoteconfig"
-    }
-  }
-}
-
 provider "firebaseremoteconfig" {
   project = "my-project"
 }
