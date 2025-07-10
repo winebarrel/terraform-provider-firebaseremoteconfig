@@ -36,35 +36,29 @@ resource "firebaseremoteconfig_parameter" "foo" {
 
 ### Required
 
-- `default_value` (Attributes) (see [below for nested schema](#nestedatt--default_value))
 - `key` (String)
 
 ### Optional
 
 - `conditional_values` (Attributes Map) (see [below for nested schema](#nestedatt--conditional_values))
+- `default_value` (Attributes) (see [below for nested schema](#nestedatt--default_value))
 - `description` (String)
 - `project` (String)
 - `value_type` (String)
 
-<a id="nestedatt--default_value"></a>
-### Nested Schema for `default_value`
-
-Required:
-
-- `value` (String)
-
-Optional:
-
-- `use_in_app_default` (Boolean)
-
-
 <a id="nestedatt--conditional_values"></a>
 ### Nested Schema for `conditional_values`
 
-Required:
+Optional:
 
+- `use_in_app_default` (Boolean)
 - `value` (String)
+
+
+<a id="nestedatt--default_value"></a>
+### Nested Schema for `default_value`
 
 Optional:
 
 - `use_in_app_default` (Boolean)
+- `value` (String)
