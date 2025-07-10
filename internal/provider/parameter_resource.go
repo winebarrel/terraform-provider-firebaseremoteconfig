@@ -213,7 +213,6 @@ func (r *Parameter) Read(ctx context.Context, req resource.ReadRequest, resp *re
 	}
 
 	if param, ok := rc.Parameters[state.Key.ValueString()]; ok {
-
 		state.Description = types.StringValue(param.Description)
 		state.ValueType = types.StringValue(param.ValueType)
 
