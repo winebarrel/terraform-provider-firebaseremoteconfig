@@ -3,7 +3,7 @@ module github.com/winebarrel/terraform-provider-firebaseremoteconfig
 go 1.24.3
 
 require (
-	github.com/hashicorp/terraform-plugin-framework v1.16.0
+	github.com/hashicorp/terraform-plugin-framework v1.16.1
 	github.com/hashicorp/terraform-plugin-framework-validators v0.18.0
 	github.com/winebarrel/google-api-go-client v0.0.0-20250709062539-4d3142f72212
 	golang.org/x/oauth2 v0.31.0
