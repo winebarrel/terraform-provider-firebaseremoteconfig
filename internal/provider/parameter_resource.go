@@ -195,6 +195,10 @@ func (r *Parameter) Create(ctx context.Context, req resource.CreateRequest, resp
 		}
 	}
 
+	if rc.Parameters == nil {
+		rc.Parameters = map[string]firebaseremoteconfig.RemoteConfigParameter{}
+	}
+
 	rc.Parameters[plan.Key.ValueString()] = param
 	_, err = r.client.UpdateRemoteConfig(plan.Project.ValueString(), rc).Do()
 
@@ -229,10 +233,16 @@ func (r *Parameter) Read(ctx context.Context, req resource.ReadRequest, resp *re
 		state.Description = types.StringValue(param.Description)
 		state.ValueType = types.StringValue(param.ValueType)
 
-		state.DefaultValue = &ParameterValueModel{
-			Value:           types.StringValue(param.DefaultValue.Value),
-			UseInAppDefault: types.BoolValue(param.DefaultValue.UseInAppDefault),
+		state.DefaultValue = nil
+
+		if param.DefaultValue != nil {
+			state.DefaultValue = &ParameterValueModel{
+				Value:           types.StringValue(param.DefaultValue.Value),
+				UseInAppDefault: types.BoolValue(param.DefaultValue.UseInAppDefault),
+			}
 		}
+
+		state.ConditionalValues = nil
 
 		if len(param.ConditionalValues) >= 1 {
 			state.ConditionalValues = map[string]ParameterValueModel{}
@@ -311,6 +321,10 @@ func (r *Parameter) Update(ctx context.Context, req resource.UpdateRequest, resp
 
 			param.ConditionalValues[key] = v
 		}
+	}
+
+	if rc.Parameters == nil {
+		rc.Parameters = map[string]firebaseremoteconfig.RemoteConfigParameter{}
 	}
 
 	rc.Parameters[plan.Key.ValueString()] = param
