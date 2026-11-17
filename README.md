@@ -69,6 +69,8 @@ resource "firebaseremoteconfig_parameter" "bar" {
 }
 ```
 
+A condition referenced by parameters cannot be removed or renamed. Remove the references from `conditional_values` and apply first, then remove the condition.
+
 ## Run locally for development
 
 ```sh

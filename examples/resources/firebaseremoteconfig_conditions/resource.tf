@@ -36,7 +36,8 @@ resource "firebaseremoteconfig_parameter" "bar" {
     }
   }
 
-  # Conditions must exist before parameters reference them,
-  # and parameters must be removed before the conditions are deleted.
+  # Conditions must exist before parameters reference them.
+  # To remove (or rename) a condition, remove it from conditional_values
+  # and apply first, then remove the condition from the conditions list.
   depends_on = [firebaseremoteconfig_conditions.main]
 }

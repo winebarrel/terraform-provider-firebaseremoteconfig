@@ -2,13 +2,19 @@ package provider
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"maps"
+	"slices"
+	"strings"
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/winebarrel/google-api-go-client/firebaseremoteconfig/v1"
@@ -46,10 +52,15 @@ func (r *Conditions) Schema(ctx context.Context, req resource.SchemaRequest, res
 	resp.Schema = schema.Schema{
 		MarkdownDescription: "Manages the whole ordered list of Remote Config conditions. " +
 			"The order of the list matters: when multiple conditions evaluate to true, the earlier one wins. " +
-			"Only one `firebaseremoteconfig_conditions` resource should exist per project.",
+			"Only one `firebaseremoteconfig_conditions` resource should exist per project. " +
+			"A condition referenced by parameters' `conditional_values` cannot be removed (or renamed): " +
+			"remove the references and apply first, then remove the condition.",
 		Attributes: map[string]schema.Attribute{
 			"project": schema.StringAttribute{
 				Optional: true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.RequiresReplace(),
+				},
 			},
 			"conditions": schema.ListNestedAttribute{
 				Required: true,
@@ -126,6 +137,64 @@ func (m *ConditionsModel) toAPI() []*firebaseremoteconfig.RemoteConfigCondition 
 	return conds
 }
 
+// conditionsReferencedError is returned when conditions to be removed are
+// still referenced by parameters' conditional values.
+type conditionsReferencedError struct {
+	// refs maps a condition name to the parameter keys referencing it.
+	refs map[string][]string
+}
+
+func (e *conditionsReferencedError) Error() string {
+	var b strings.Builder
+
+	b.WriteString("The following conditions cannot be removed because they are still referenced by parameters:\n")
+
+	for _, name := range slices.Sorted(maps.Keys(e.refs)) {
+		fmt.Fprintf(&b, "  - condition %q is referenced by parameters: %s\n", name, strings.Join(e.refs[name], ", "))
+	}
+
+	b.WriteString("\nRemove the conditions from the parameters' conditional_values and apply first, then remove the conditions.")
+
+	return b.String()
+}
+
+// checkConditionReferences returns an error if any parameter has a conditional
+// value for a condition that is not in conds.
+func checkConditionReferences(params map[string]firebaseremoteconfig.RemoteConfigParameter, conds []*firebaseremoteconfig.RemoteConfigCondition) error {
+	names := make(map[string]struct{}, len(conds))
+
+	for _, c := range conds {
+		names[c.Name] = struct{}{}
+	}
+
+	refs := map[string][]string{}
+
+	for _, key := range slices.Sorted(maps.Keys(params)) {
+		for _, condName := range slices.Sorted(maps.Keys(params[key].ConditionalValues)) {
+			if _, ok := names[condName]; !ok {
+				refs[condName] = append(refs[condName], key)
+			}
+		}
+	}
+
+	if len(refs) > 0 {
+		return &conditionsReferencedError{refs: refs}
+	}
+
+	return nil
+}
+
+func addPutError(diags interface{ AddError(string, string) }, err error) {
+	var refErr *conditionsReferencedError
+
+	if errors.As(err, &refErr) {
+		diags.AddError("Conditions Still Referenced", err.Error())
+		return
+	}
+
+	diags.AddError("Error Updating Firebase Remote Config", err.Error())
+}
+
 func (r *Conditions) put(project string, conds []*firebaseremoteconfig.RemoteConfigCondition) error {
 	r.client.mu.Lock()
 	defer r.client.mu.Unlock()
@@ -134,6 +203,10 @@ func (r *Conditions) put(project string, conds []*firebaseremoteconfig.RemoteCon
 
 	if err != nil {
 		return fmt.Errorf("get remote config: %w", err)
+	}
+
+	if err := checkConditionReferences(rc.Parameters, conds); err != nil {
+		return err
 	}
 
 	rc.Conditions = conds
@@ -156,7 +229,7 @@ func (r *Conditions) Create(ctx context.Context, req resource.CreateRequest, res
 	}
 
 	if err := r.put(plan.Project.ValueString(), plan.toAPI()); err != nil {
-		resp.Diagnostics.AddError("Error Updating Firebase Remote Config", err.Error())
+		addPutError(&resp.Diagnostics, err)
 		return
 	}
 
@@ -206,7 +279,7 @@ func (r *Conditions) Update(ctx context.Context, req resource.UpdateRequest, res
 	}
 
 	if err := r.put(plan.Project.ValueString(), plan.toAPI()); err != nil {
-		resp.Diagnostics.AddError("Error Updating Firebase Remote Config", err.Error())
+		addPutError(&resp.Diagnostics, err)
 		return
 	}
 
@@ -222,7 +295,7 @@ func (r *Conditions) Delete(ctx context.Context, req resource.DeleteRequest, res
 	}
 
 	if err := r.put(state.Project.ValueString(), nil); err != nil {
-		resp.Diagnostics.AddError("Error Updating Firebase Remote Config", err.Error())
+		addPutError(&resp.Diagnostics, err)
 		return
 	}
 

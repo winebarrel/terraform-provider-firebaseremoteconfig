@@ -3,12 +3,12 @@
 page_title: "firebaseremoteconfig_conditions Resource - firebaseremoteconfig"
 subcategory: ""
 description: |-
-  Manages the whole ordered list of Remote Config conditions. The order of the list matters: when multiple conditions evaluate to true, the earlier one wins. Only one firebaseremoteconfig_conditions resource should exist per project.
+  Manages the whole ordered list of Remote Config conditions. The order of the list matters: when multiple conditions evaluate to true, the earlier one wins. Only one firebaseremoteconfig_conditions resource should exist per project. A condition referenced by parameters' conditional_values cannot be removed (or renamed): remove the references and apply first, then remove the condition.
 ---
 
 # firebaseremoteconfig_conditions (Resource)
 
-Manages the whole ordered list of Remote Config conditions. The order of the list matters: when multiple conditions evaluate to true, the earlier one wins. Only one `firebaseremoteconfig_conditions` resource should exist per project.
+Manages the whole ordered list of Remote Config conditions. The order of the list matters: when multiple conditions evaluate to true, the earlier one wins. Only one `firebaseremoteconfig_conditions` resource should exist per project. A condition referenced by parameters' `conditional_values` cannot be removed (or renamed): remove the references and apply first, then remove the condition.
 
 ## Example Usage
 
@@ -51,8 +51,9 @@ resource "firebaseremoteconfig_parameter" "bar" {
     }
   }
 
-  # Conditions must exist before parameters reference them,
-  # and parameters must be removed before the conditions are deleted.
+  # Conditions must exist before parameters reference them.
+  # To remove (or rename) a condition, remove it from conditional_values
+  # and apply first, then remove the condition from the conditions list.
   depends_on = [firebaseremoteconfig_conditions.main]
 }
 ```
