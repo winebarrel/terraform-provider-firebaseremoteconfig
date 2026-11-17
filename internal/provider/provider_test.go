@@ -56,7 +56,7 @@ func TestProvider_Resources(t *testing.T) {
 		require.False(t, diags.HasError(), "%s: %v", resp.TypeName, diags)
 	}
 
-	assert.ElementsMatch(t, []string{"firebaseremoteconfig_parameter"}, typeNames)
+	assert.ElementsMatch(t, []string{"firebaseremoteconfig_parameter", "firebaseremoteconfig_conditions"}, typeNames)
 	assert.Empty(t, p.DataSources(ctx))
 }
 
