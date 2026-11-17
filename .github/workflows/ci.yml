@@ -21,3 +21,4 @@ jobs:
       - uses: golangci/golangci-lint-action@v9
       - run: make vet
       - run: make build
+      - run: make test
