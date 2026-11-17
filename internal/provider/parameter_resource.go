@@ -145,6 +145,9 @@ func (r *Parameter) Create(ctx context.Context, req resource.CreateRequest, resp
 		return
 	}
 
+	r.client.mu.Lock()
+	defer r.client.mu.Unlock()
+
 	rc, err := r.client.GetRemoteConfig(plan.Project.ValueString()).Do()
 
 	if err != nil {
@@ -260,6 +263,9 @@ func (r *Parameter) Update(ctx context.Context, req resource.UpdateRequest, resp
 		return
 	}
 
+	r.client.mu.Lock()
+	defer r.client.mu.Unlock()
+
 	rc, err := r.client.GetRemoteConfig(plan.Project.ValueString()).Do()
 
 	if err != nil {
@@ -329,6 +335,9 @@ func (r *Parameter) Delete(ctx context.Context, req resource.DeleteRequest, resp
 	if resp.Diagnostics.HasError() {
 		return
 	}
+
+	r.client.mu.Lock()
+	defer r.client.mu.Unlock()
 
 	rc, err := r.client.GetRemoteConfig(state.Project.ValueString()).Do()
 

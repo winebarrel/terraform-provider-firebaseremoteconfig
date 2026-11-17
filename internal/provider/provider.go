@@ -2,6 +2,7 @@ package provider
 
 import (
 	"context"
+	"sync"
 
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/provider"
@@ -26,6 +27,7 @@ type FirebaseRemoteConfigProviderModel struct {
 type FirebaseRemoteConfigClient struct {
 	service *firebaseremoteconfig.Service
 	project string
+	mu      sync.Mutex // serializes read-modify-write of the remote config
 }
 
 func (client *FirebaseRemoteConfigClient) GetRemoteConfig(resProj string) *firebaseremoteconfig.ProjectsGetRemoteConfigCall {
@@ -96,6 +98,7 @@ func (p *FirebaseRemoteConfigProvider) Configure(ctx context.Context, req provid
 func (p *FirebaseRemoteConfigProvider) Resources(ctx context.Context) []func() resource.Resource {
 	return []func() resource.Resource{
 		NewParameter,
+		NewConditions,
 	}
 }
 

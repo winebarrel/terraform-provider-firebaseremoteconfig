@@ -38,6 +38,37 @@ resource "firebaseremoteconfig_parameter" "foo" {
 }
 ```
 
+### Conditions
+
+```tf
+resource "firebaseremoteconfig_conditions" "main" {
+  # The order matters: the earlier condition wins.
+  conditions = [
+    {
+      name       = "ios"
+      expression = "device.os == 'ios'"
+      tag_color  = "BLUE"
+    },
+  ]
+}
+
+resource "firebaseremoteconfig_parameter" "bar" {
+  key = "bar"
+
+  default_value = {
+    value = "default"
+  }
+
+  conditional_values = {
+    ios = {
+      value = "for ios"
+    }
+  }
+
+  depends_on = [firebaseremoteconfig_conditions.main]
+}
+```
+
 ## Run locally for development
 
 ```sh
